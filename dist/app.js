@@ -13,7 +13,7 @@ const games={
   tictactoe:{name:'井字棋',english:'TIC-TAC-TOE',description:'三横三竖，也有小小的博弈。',time:'1–3 分钟',tag:'轻松',category:'quick',rules:'叉号先行，双方轮流在空格内落子。横、竖或斜线上率先连成三个相同符号即获胜。棋盘填满而无人连线时为平局。电脑会认真应对，试着与它打成平手吧。',instruction:'点击空格，连成三个相同符号'}
 };
 const STORAGE_KEY='chess-cheers-v1';
-let store={saves:{},archives:[],sound:false,puzzleSolved:false,effects:true,appearance:{view:'3d',theme:'classic',angle:48,rotation:-12,version:2}};
+let store={saves:{},archives:[],sound:false,puzzleSolved:false,effects:true,appearance:{view:'3d',theme:'classic',angle:48,rotation:-12,zoom:1.5,version:2}};
 let storageAvailable=true;
 try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(saved&&typeof saved==='object'){store={...store,...saved,saves:saved.saves&&typeof saved.saves==='object'?saved.saves:{},archives:Array.isArray(saved.archives)?saved.archives.slice(0,30):[]};}}catch{storageAvailable=false;}
 let current=null,botTimer=null,session=0,toastTimer=null,dialogAction=null,promotionResolve=null;
@@ -24,6 +24,7 @@ if(!['2d','3d'].includes(store.appearance.view))store.appearance.view='2d';
 if(!['classic','terrain','world'].includes(store.appearance.theme))store.appearance.theme='classic';
 store.appearance.angle=Math.max(15,Math.min(65,Number(store.appearance.angle)||48));
 store.appearance.rotation=Number.isFinite(Number(store.appearance.rotation))?Number(store.appearance.rotation):-5;
+store.appearance.zoom=Math.max(1,Math.min(1.5,Number(store.appearance.zoom)||1.5));
 const effects=new GameEffects($('#board-stage'),()=>store.effects!==false);
 effects.reduced.addEventListener('change',()=>{effects.clear();scene3d?.resetEffects();});
 let scene3d=null,scenePromise=null,sceneFailed=false,victoryTimer=null,previewTimer=null;
@@ -88,9 +89,12 @@ function renderGame(){const g=games[current.kind],moves=getMoves(),turn=getTurn(
   $('#move-history').innerHTML=moves.length?Array.from({length:Math.ceil(moves.length/2)},(_,i)=>`<div class="move-row"><span>${i+1}.</span><span>${moves[2*i].label}</span><span>${moves[2*i+1]?.label||'—'}</span></div>`).join(''):'<div class="empty-moves">故事，从你的第一步开始。</div>';
   $('#move-history').scrollTop=$('#move-history').scrollHeight;renderBoard();applyAppearance();
 }
-function applyAppearance(){const {view,theme,angle}=store.appearance,frame=$('#board-frame');frame.dataset.view='2d';frame.dataset.theme=theme;$('#board-stage').dataset.view=view;$('#board-3d').hidden=view!=='3d';$('.scene-badge').hidden=view!=='3d';document.querySelectorAll('[data-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.view===view)));document.querySelectorAll('[data-theme]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.theme===theme)));$('.rotation-control').hidden=view!=='3d';$('#board-angle').value=angle;$('#angle-output').textContent=angle+'°';if(view==='3d')ensureScene();else scene3d?.setActive(false);}
+function syncBoardZoom(){const zoom=store.appearance.zoom,stage=$('#board-stage'),section=stage.closest('.board-section'),stack=zoom>=1.25&&window.innerWidth>900;stage.dataset.zoomed=String(stack);stage.style.width=`${Math.round(zoom*(window.innerWidth<=900?100:stack?60:100))}%`;section.classList.toggle('board-zoomed',stack);$('#board-zoom').value=Math.round(zoom*100);$('#zoom-output').textContent=zoom.toFixed(2).replace(/\.?0+$/,'')+'×';}
+function applyAppearance(){const {view,theme,angle}=store.appearance,frame=$('#board-frame');frame.dataset.view='2d';frame.dataset.theme=theme;$('#board-stage').dataset.view=view;$('#board-3d').hidden=view!=='3d';$('.scene-badge').hidden=view!=='3d';document.querySelectorAll('[data-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.view===view)));document.querySelectorAll('[data-theme]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.theme===theme)));$('.rotation-control').hidden=view!=='3d';$('#board-angle').value=angle;$('#angle-output').textContent=angle+'°';syncBoardZoom();if(view==='3d')ensureScene();else scene3d?.setActive(false);}
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{store.appearance.view=button.dataset.view;applyAppearance();persist();}));
 document.querySelectorAll('[data-theme]').forEach(button=>button.addEventListener('click',()=>{store.appearance.theme=button.dataset.theme;applyAppearance();persist();}));
+$('#board-zoom').addEventListener('input',event=>{store.appearance.zoom=Number(event.target.value)/100;syncBoardZoom();persist();});
+window.addEventListener('resize',syncBoardZoom);
 $('#board-angle').addEventListener('input',event=>{store.appearance.angle=Number(event.target.value);applyAppearance();persist();});
 $('#rotate-board').addEventListener('click',()=>{store.appearance.rotation=(store.appearance.rotation+90)%360;applyAppearance();persist();});
 const pieceNames={p:'兵',r:'车',n:'马',b:'象',q:'后',k:'王'};
