@@ -17,9 +17,9 @@ export class Board3D {
     const canvas=this.renderer.domElement;canvas.setAttribute('aria-label','三维棋盘：点击落子，拖动旋转，滚轮缩放。键盘可使用下方棋盘。');canvas.setAttribute('role','img');host.append(canvas);
     this.scene=new T.Scene();this.camera=new T.PerspectiveCamera(39,1,.1,100);this.camera.position.set(1,10,10);
     this.controls=new OrbitControls(this.camera,canvas);this.controls.target.set(0,.3,0);this.controls.enablePan=false;this.controls.minDistance=10.5;this.controls.maxDistance=23;this.controls.minPolarAngle=T.MathUtils.degToRad(15);this.controls.maxPolarAngle=T.MathUtils.degToRad(65);this.controls.rotateSpeed=.65;this.controls.enableDamping=false;
-    this.controls.addEventListener('change',()=>{this.draw();if(!this.settingCamera)this.onOrbit?.(T.MathUtils.radToDeg(this.controls.getPolarAngle()),T.MathUtils.radToDeg(this.controls.getAzimuthalAngle()));});
+    this.controls.addEventListener('change',()=>{this.updateKeyLight();this.draw();if(!this.settingCamera)this.onOrbit?.(T.MathUtils.radToDeg(this.controls.getPolarAngle()),T.MathUtils.radToDeg(this.controls.getAzimuthalAngle()));});
     this.scene.add(new T.HemisphereLight(0xfff9ea,0x6c7662,2));
-    const key=new T.DirectionalLight(0xffedcb,4);key.position.set(-4,12,5);key.castShadow=true;key.shadow.mapSize.set(1024,1024);Object.assign(key.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:1,far:30});key.shadow.bias=-.001;key.shadow.normalBias=.035;this.scene.add(key);
+    const key=new T.DirectionalLight(0xffedcb,4);key.castShadow=true;key.shadow.mapSize.set(1024,1024);Object.assign(key.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:1,far:30});key.shadow.bias=-.001;key.shadow.normalBias=.035;this.scene.add(key);this.scene.add(key.target);this.keyLight=key;
     const rim=new T.DirectionalLight(0xd9e6e5,2.3);rim.position.set(6,6,-7);this.scene.add(rim);
     this.root=new T.Group();this.scene.add(this.root);this.surface=new T.Group();this.pieces=new T.Group();this.marks=new T.Group();this.particles=new T.Group();this.root.add(this.surface,this.pieces,this.marks,this.particles);
     this.materials=new Map();this.geometry=new Map();this.meshes=new Map();this.tweens=[];this.raf=0;this.active=true;this.layoutKey='';this.positionKey='';this.images={};this.n=8;this.kind='chess';
@@ -39,6 +39,7 @@ export class Board3D {
   sphere(radius,material,parent,x=0,y=0,z=0){return this.mesh(this.geom(`sphere${radius}`,()=>new T.SphereGeometry(radius,24,16)),material,parent,x,y,z);}
   clear(group){group.traverse(object=>{if(object.geometry&&!object.geometry.userData.shared)object.geometry.dispose();if(object.userData.disposeMaterial)object.material.dispose();object.userData.texture?.dispose();});group.clear();}
   position(r,c){const spacing=8/this.n;return {x:(c-((this.columns||this.n)-1)/2)*spacing,z:(r-(this.n-1)/2)*spacing};}
+  updateKeyLight(){if(!this.keyLight||!this.controls)return;const azimuth=this.controls.getAzimuthalAngle(),polar=T.MathUtils.degToRad(34),distance=14;this.keyLight.position.set(Math.sin(polar)*Math.sin(azimuth)*distance,Math.cos(polar)*distance,Math.sin(polar)*Math.cos(azimuth)*distance);this.keyLight.target.position.set(0,0,0);}
   setCamera(angle,rotation){this.settingCamera=true;const distance=this.camera.position.distanceTo(this.controls.target)||17;const polar=T.MathUtils.degToRad(angle),azimuth=T.MathUtils.degToRad(rotation);this.camera.position.set(Math.sin(polar)*Math.sin(azimuth)*distance,Math.cos(polar)*distance+.3,Math.sin(polar)*Math.cos(azimuth)*distance);this.controls.update();this.settingCamera=false;this.draw();}
   resize(){const size=this.host.clientWidth;if(!size)return;this.renderer.setSize(size,size,false);this.camera.aspect=1;this.camera.updateProjectionMatrix();this.draw();}
   setActive(active){this.active=active;this.controls.enabled=active;if(!active){cancelAnimationFrame(this.raf);this.raf=0;this.resetEffects();}else{this.resize();this.draw();}}
