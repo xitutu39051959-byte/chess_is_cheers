@@ -15,8 +15,8 @@ export class Board3D {
     this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFSoftShadowMap;
     this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.35;
     const canvas=this.renderer.domElement;canvas.setAttribute('aria-label','三维棋盘：点击落子，拖动旋转，滚轮缩放。键盘可使用下方棋盘。');canvas.setAttribute('role','img');host.append(canvas);
-    this.scene=new T.Scene();this.camera=new T.PerspectiveCamera(39,1,.1,100);this.camera.position.set(1,12,13);
-    this.controls=new OrbitControls(this.camera,canvas);this.controls.target.set(0,.3,0);this.controls.enablePan=false;this.controls.minDistance=12;this.controls.maxDistance=23;this.controls.minPolarAngle=T.MathUtils.degToRad(15);this.controls.maxPolarAngle=T.MathUtils.degToRad(65);this.controls.rotateSpeed=.65;this.controls.enableDamping=false;
+    this.scene=new T.Scene();this.camera=new T.PerspectiveCamera(39,1,.1,100);this.camera.position.set(1,10,10);
+    this.controls=new OrbitControls(this.camera,canvas);this.controls.target.set(0,.3,0);this.controls.enablePan=false;this.controls.minDistance=10.5;this.controls.maxDistance=23;this.controls.minPolarAngle=T.MathUtils.degToRad(15);this.controls.maxPolarAngle=T.MathUtils.degToRad(65);this.controls.rotateSpeed=.65;this.controls.enableDamping=false;
     this.controls.addEventListener('change',()=>{this.draw();if(!this.settingCamera)this.onOrbit?.(T.MathUtils.radToDeg(this.controls.getPolarAngle()),T.MathUtils.radToDeg(this.controls.getAzimuthalAngle()));});
     this.scene.add(new T.HemisphereLight(0xfff9ea,0x6c7662,2));
     const key=new T.DirectionalLight(0xffedcb,4);key.position.set(-4,12,5);key.castShadow=true;key.shadow.mapSize.set(1024,1024);Object.assign(key.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:1,far:30});key.shadow.bias=-.001;key.shadow.normalBias=.035;this.scene.add(key);
