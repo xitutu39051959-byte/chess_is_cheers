@@ -23,6 +23,7 @@ export function pieceSVG(type,color='w',className='chess-piece'){
   return `<svg class="${className}" viewBox="0 0 48 48" aria-hidden="true" style="color:${color==='w'?'#71684e':'#d8d5bd'}" fill="${color==='w'?'#fff9e7':'#353f31'}" stroke="${color==='w'?'#8d8264':'#252f23'}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${shapes[type]||shapes.p}</svg>`;
 }
 export function cardArt(kind){
+  if(kind==='xiangqi')return `<div class="mini-xiangqi"><span class="mini-river">楚河 · 汉界</span><i class="mini-xiangqi-piece black" style="left:28%;top:28%">将</i><i class="mini-xiangqi-piece red" style="left:70%;top:70%">帅</i><i class="mini-xiangqi-piece red" style="left:28%;top:70%">炮</i></div>`;
   if(kind==='gomoku')return `<div class="mini-grid mini-gomoku">${[[2,2,1],[3,3,1],[4,4,1],[2,3,2],[3,2,2],[4,3,2],[5,3,1]].map(([r,c,p])=>`<i class="mini-stone ${p===1?'black':'white'}" style="left:${c/6*100}%;top:${r/6*100}%"></i>`).join('')}</div>`;
   if(kind==='chess')return `<div class="mini-grid mini-chess">${Array.from({length:16},(_,i)=>`<span class="${(Math.floor(i/4)+i%4)%2?'dark':''}">${({1:['k','b'],6:['p','b'],9:['p','w'],14:['n','w']})[i]?pieceSVG(...({1:['k','b'],6:['p','b'],9:['p','w'],14:['n','w']})[i]):''}</span>`).join('')}</div>`;
   if(kind==='reversi')return `<div class="mini-grid mini-reversi">${[[1,1,1],[2,2,1],[2,1,2],[1,2,2],[0,1,1],[2,3,2]].map(([r,c,p])=>`<i class="mini-stone ${p===1?'black':'white'}" style="left:${c*25+12.5}%;top:${r*25+12.5}%"></i>`).join('')}</div>`;
