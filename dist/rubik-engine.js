@@ -1,7 +1,7 @@
 const FACE_INFO={
-  U:{axis:'y',sign:1,color:'#F7F7F7'},D:{axis:'y',sign:-1,color:'#FFD500'},
-  R:{axis:'x',sign:1,color:'#C8102E'},L:{axis:'x',sign:-1,color:'#FF6D00'},
-  F:{axis:'z',sign:1,color:'#009B48'},B:{axis:'z',sign:-1,color:'#0051BA'}
+  U:{axis:'y',sign:1,color:'#F5F1E8'},D:{axis:'y',sign:-1,color:'#D9BE5B'},
+  R:{axis:'x',sign:1,color:'#B95D67'},L:{axis:'x',sign:-1,color:'#D38B5C'},
+  F:{axis:'z',sign:1,color:'#5D9278'},B:{axis:'z',sign:-1,color:'#6581A4'}
 };
 const NORMALS={'x+':[1,0,0],'x-':[-1,0,0],'y+':[0,1,0],'y-':[0,-1,0],'z+':[0,0,1],'z-':[0,0,-1]};
 const keyFor=v=>{const axis=v[0]?'x':v[1]?'y':'z',value=v[axis==='x'?0:axis==='y'?1:2];return `${axis}${value>0?'+':'-'}`};
