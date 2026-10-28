@@ -29,7 +29,7 @@ export class GridGame {
     if(this.kind==='reversi'&&!flips.length)return false;
     this.snapshots.push({board:this.board.map(row=>[...row]),turn:this.turn,winner:this.winner,winning:[...this.winning]});
     const player=this.turn;this.board[r][c]=player;for(const [fr,fc] of flips)this.board[fr][fc]=player;
-    const record={r,c,player,label:coordinate(r,c,this.size),flips:flips.length};this.history.push(record);
+    const record={r,c,player,label:coordinate(r,c,this.size),flips:flips.length,flipped:flips.map(([r,c])=>({r,c}))};this.history.push(record);
     if(this.kind==='reversi'){
       this.turn=3-player;
       if(!this.legalMoves().length){this.turn=player;record.pass=true;if(!this.legalMoves().length){const [black,white]=this.score();this.winner=black===white?0:black>white?1:2;}}
