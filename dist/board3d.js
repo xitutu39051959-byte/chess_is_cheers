@@ -1,3 +1,4 @@
+import { boardThemes } from './themes.js';
 import * as T from './vendor/three.module.js';
 import { OrbitControls } from './vendor/OrbitControls.js';
 import { XIANGQI_NAMES } from './xiangqi.js';
@@ -28,7 +29,7 @@ export class Board3D {
     canvas.addEventListener('pointerup',event=>{const start=this.pointerStart;this.pointerStart=null;if(!start||start.id!==event.pointerId||Math.hypot(event.clientX-start.x,event.clientY-start.y)>7)return;const rect=canvas.getBoundingClientRect();this.pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);this.raycaster.setFromCamera(this.pointer,this.camera);const hits=this.raycaster.intersectObjects([...this.pieces.children,...this.hitPlanes||[]],true);const hit=hits.find(h=>h.object.userData.cell);if(hit){const {r,c}=hit.object.userData.cell;this.onCell(r,c);}});
     canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();this.setActive(false);this.onFailure?.();});
     this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(host);
-    for(const theme of ['terrain','world','xiangqi-board']){const image=new Image();image.onload=()=>{this.images[theme]=image;if(this.theme===theme||(theme==='xiangqi-board'&&this.kind==='xiangqi')){this.layoutKey='';this.sync(this.lastState);}};image.src=`assets/${theme}.svg`;}
+    for(const theme of ['terrain','world','jade','porcelain','ink','xiangqi-board']){const image=new Image();image.onload=()=>{this.images[theme]=image;if(this.theme===theme||(theme==='xiangqi-board'&&this.kind==='xiangqi')){this.layoutKey='';this.sync(this.lastState);}};image.src=`assets/${theme}.svg`;}
     this.setCamera(48,-12);this.resize();
   }
   material(color,metalness=.05,roughness=.36){const key=[color,metalness,roughness].join();if(!this.materials.has(key))this.materials.set(key,new T.MeshStandardMaterial({color,metalness,roughness}));return this.materials.get(key);}
@@ -44,15 +45,15 @@ export class Board3D {
   resize(){const size=this.host.clientWidth;if(!size)return;this.renderer.setSize(size,size,false);this.camera.aspect=1;this.camera.updateProjectionMatrix();this.draw();}
   setActive(active){this.active=active;this.controls.enabled=active;if(!active){cancelAnimationFrame(this.raf);this.raf=0;this.resetEffects();}else{this.resize();this.draw();}}
   draw(){if(this.active&&!document.hidden)this.renderer.render(this.scene,this.camera);}
-  texture(kind,theme){const canvas=document.createElement('canvas');canvas.width=canvas.height=1024;const ctx=canvas.getContext('2d');ctx.fillStyle=theme==='classic'?(kind==='reversi'?'#7d9270':'#d7bf91'):'#b8c6a5';ctx.fillRect(0,0,1024,1024);if(this.images[theme])ctx.drawImage(this.images[theme],0,0,1024,1024);const n=this.n,step=1024/n;
+  texture(kind,theme){const canvas=document.createElement('canvas');canvas.width=canvas.height=1024;const ctx=canvas.getContext('2d'),palette=boardThemes[theme]||boardThemes.classic;ctx.fillStyle=theme==='classic'&&kind==='reversi'?'#7d9270':palette.base;ctx.fillRect(0,0,1024,1024);if(this.images[theme])ctx.drawImage(this.images[theme],0,0,1024,1024);const n=this.n,step=1024/n;
     if(kind==='xiangqi'){if(theme!=='classic'){ctx.fillStyle='rgba(245,231,192,.28)';ctx.fillRect(0,0,1024,1024);}if(this.images['xiangqi-board'])ctx.drawImage(this.images['xiangqi-board'],0,0,1024,1024);}
-    else if(kind==='chess'){for(let r=0;r<n;r++)for(let c=0;c<n;c++){ctx.fillStyle=(r+c)%2?(theme==='classic'?'#526249':'rgba(48,75,53,.60)'):(theme==='classic'?'#e6d6ac':'rgba(255,247,211,.25)');ctx.fillRect(c*step,r*step,step,step);}}
-    else{ctx.strokeStyle=kind==='tictactoe'?'#7f7960':theme==='classic'?'#766c4b':'#4f705b';ctx.lineWidth=kind==='tictactoe'?4:1.4;ctx.beginPath();if(kind==='gomoku'){for(let i=0;i<n;i++){const p=(i+.5)*step;ctx.moveTo(step/2,p);ctx.lineTo(1024-step/2,p);ctx.moveTo(p,step/2);ctx.lineTo(p,1024-step/2);}ctx.stroke();for(const r of [3,7,11])for(const c of [3,7,11]){ctx.beginPath();ctx.arc((c+.5)*step,(r+.5)*step,4,0,TAU);ctx.fillStyle='#786947';ctx.fill();}}
+    else if(kind==='chess'){for(let r=0;r<n;r++)for(let c=0;c<n;c++){ctx.fillStyle=(r+c)%2?palette.dark:palette.light;ctx.fillRect(c*step,r*step,step,step);}}
+    else{ctx.strokeStyle=palette.line;ctx.lineWidth=kind==='tictactoe'?4:1.4;ctx.beginPath();if(kind==='gomoku'){for(let i=0;i<n;i++){const p=(i+.5)*step;ctx.moveTo(step/2,p);ctx.lineTo(1024-step/2,p);ctx.moveTo(p,step/2);ctx.lineTo(p,1024-step/2);}ctx.stroke();for(const r of [3,7,11])for(const c of [3,7,11]){ctx.beginPath();ctx.arc((c+.5)*step,(r+.5)*step,4,0,TAU);ctx.fillStyle='#786947';ctx.fill();}}
       else{for(let i=1;i<n;i++){ctx.moveTo(i*step,0);ctx.lineTo(i*step,1024);ctx.moveTo(0,i*step);ctx.lineTo(1024,i*step);}ctx.stroke();}}
     if(theme==='classic'&&kind!=='reversi'){ctx.globalAlpha=.045;for(let i=0;i<150;i++){ctx.strokeStyle=i%2?'#513d24':'#fff7db';ctx.lineWidth=1+i%3;ctx.beginPath();ctx.moveTo(0,i*8);ctx.bezierCurveTo(300,i*8+9,700,i*8-8,1024,i*8+3);ctx.stroke();}ctx.globalAlpha=1;}
     const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;texture.anisotropy=Math.min(8,this.renderer.capabilities.getMaxAnisotropy());return texture;
   }
-  buildSurface(){this.clear(this.surface);this.surfaceTexture?.dispose();const wood=this.material(this.theme==='classic'?'#65472e':'#475c46',.1,.35),gold=this.material('#b6a06a',.65,.28);
+  buildSurface(){this.clear(this.surface);this.surfaceTexture?.dispose();const wood=this.material((boardThemes[this.theme]||boardThemes.classic).rim,.1,.35),gold=this.material('#b6a06a',.65,.28);
     const width=this.kind==='xiangqi'?7.2:8;
     this.box(width+.9,.45,8.9,wood,this.surface,0,-.1,0);this.box(width+.98,.08,8.98,gold,this.surface,0,-.18,0);this.box(width+.83,.12,8.83,wood,this.surface,0,-.35,0);this.box(width+.5,.12,8.5,this.material('#332d22'),this.surface,0,.13,0);
     this.surfaceTexture=this.texture(this.kind,this.theme);const surfaceMaterial=new T.MeshStandardMaterial({map:this.surfaceTexture,roughness:.62,metalness:.02});const top=this.mesh(new T.BoxGeometry(width,.05,8),surfaceMaterial,this.surface,0,.215,0);top.userData.disposeMaterial=true;
