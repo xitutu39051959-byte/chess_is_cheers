@@ -11,6 +11,7 @@ export class Xiangqi {
     for(const color of [1,2]){const r=color===1?9:0;back.forEach((type,c)=>{this.board[r][c]={type,color};});for(const c of [1,7])this.board[color===1?7:2][c]={type:'c',color};for(const c of [0,2,4,6,8])this.board[color===1?6:3][c]={type:'p',color};}
     this.turn=1;this.winner=null;this.reason='';this.history=[];this.snapshots=[];this.winning=[];this.halfMoves=0;this.positions=[this.key()];
   }
+  static fromPieces(pieces,turn=1){const game=new Xiangqi();game.board=Array.from({length:10},()=>Array(9).fill(null));for(const [r,c,type,color] of pieces)game.board[r][c]={type,color};game.turn=turn;game.positions=[game.key()];return game;}
   key(){return this.turn+':'+this.board.map(row=>row.map(p=>p?(p.color===1?p.type.toUpperCase():p.type):'.').join('')).join('/');}
   pseudoMoves(color=this.turn){
     const moves=[];const add=(fr,fc,r,c)=>{if(!inside(r,c)||this.board[r][c]?.color===color)return;moves.push({fr,fc,r,c,player:color,type:this.board[fr][fc].type,captured:this.board[r][c]?{...this.board[r][c]}:null});};

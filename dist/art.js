@@ -1,3 +1,4 @@
+import { TIAOQI_HOLES, tiaoqiXY, homeOwner } from './tiaoqi.js';
 const icons={
   grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
@@ -29,6 +30,10 @@ export function cardArt(kind){
   if(kind==='gomoku')return `<div class="mini-grid mini-gomoku">${[[2,2,1],[3,3,1],[4,4,1],[2,3,2],[3,2,2],[4,3,2],[5,3,1]].map(([r,c,p])=>`<i class="mini-stone ${p===1?'black':'white'}" style="left:${c/6*100}%;top:${r/6*100}%"></i>`).join('')}</div>`;
   if(kind==='chess')return `<div class="mini-grid mini-chess">${Array.from({length:16},(_,i)=>`<span class="${(Math.floor(i/4)+i%4)%2?'dark':''}">${({1:['k','b'],6:['p','b'],9:['p','w'],14:['n','w']})[i]?pieceSVG(...({1:['k','b'],6:['p','b'],9:['p','w'],14:['n','w']})[i]):''}</span>`).join('')}</div>`;
   if(kind==='reversi')return `<div class="mini-grid mini-reversi">${[[1,1,1],[2,2,1],[2,1,2],[1,2,2],[0,1,1],[2,3,2]].map(([r,c,p])=>`<i class="mini-stone ${p===1?'black':'white'}" style="left:${c*25+12.5}%;top:${r*25+12.5}%"></i>`).join('')}</div>`;
+  if(kind==='go')return `<div class="mini-grid mini-gomoku">${[[1,2,1],[1,3,2],[2,1,1],[2,3,2],[3,2,1],[3,4,2],[4,3,1],[2,2,2]].map(([r,c,p])=>`<i class="mini-stone ${p===1?'black':'white'}" style="left:${c/6*100+8}%;top:${r/6*100+8}%"></i>`).join('')}</div>`;
+  if(kind==='connect4'){const red=[38,39,31,23,33],gold=[37,40,30,32,24];return `<div class="mini-grid mini-connect4">${Array.from({length:42},(_,i)=>`<i class="${red.includes(i)?'red':gold.includes(i)?'gold':''}"></i>`).join('')}</div>`;}
+  if(kind==='tiaoqi')return `<svg class="mini-tiaoqi" viewBox="-7 -7.6 14 15.2" aria-hidden="true">${TIAOQI_HOLES.map(([r,c])=>{const {x,y}=tiaoqiXY(r,c),owner=homeOwner(r,c);return `<circle cx="${x}" cy="${y.toFixed(2)}" r="${owner?.42:.2}" fill="${owner===1?'#a63c27':owner===2?'#2f5f80':'#8d7c5c'}"/>`;}).join('')}</svg>`;
+  if(kind==='jungle')return `<div class="mini-jungle" aria-hidden="true"><b></b><i class="blue" style="left:30%;top:24%">象</i><i class="red" style="left:70%;top:78%">狮</i><i class="red" style="left:50%;top:55%">鼠</i></div>`;
   return `<div class="mini-grid mini-ttt">${['×','','○','','×','○','','','×'].map(x=>`<span class="${x==='○'?'o':''}">${x}</span>`).join('')}</div>`;
 }
 export function heroArt(){const pieces={0:['r','b'],2:['b','b'],4:['k','b'],7:['r','b'],9:['p','b'],11:['p','b'],14:['p','b'],21:['n','b'],27:['p','w'],35:['p','b'],42:['n','w'],48:['p','w'],50:['p','w'],53:['p','w'],55:['p','w'],56:['r','w'],59:['q','w'],60:['k','w']};return Array.from({length:64},(_,i)=>`<span class="art-square ${(Math.floor(i/8)+i%8)%2?'dark':''}">${pieces[i]?pieceSVG(...pieces[i],'art-piece'):''}</span>`).join('');}
