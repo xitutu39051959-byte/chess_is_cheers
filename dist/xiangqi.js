@@ -46,9 +46,103 @@ export class Xiangqi {
 
 const values={k:20000,r:900,h:410,c:450,e:200,a:200,p:100};
 function evaluate(game,player){let score=0;for(let r=0;r<10;r++)for(let c=0;c<9;c++){const piece=game.board[r][c];if(!piece)continue;const crossed=piece.color===1?r<=4:r>=5;const advancement=piece.color===1?9-r:r;const positional=piece.type==='p'?(crossed?80:0)+advancement*9:['h','c','r'].includes(piece.type)?(4-Math.abs(c-4))*5+advancement*2:0;score+=(values[piece.type]+positional)*(piece.color===player?1:-1);}return score;}
-export function chooseXiangqiMove(game){
+function chooseXiangqiCasual(game){
   const player=game.turn,moves=game.legalMoves().sort((a,b)=>(values[b.captured?.type]||0)-(values[a.captured?.type]||0));let best=-Infinity,chosen=null;
   for(const move of moves){const value=game.temporary(move,()=>{const replies=game.legalMoves();if(!replies.length)return 100000;let worst=Infinity;for(const reply of replies){const score=game.temporary(reply,()=>evaluate(game,player));worst=Math.min(worst,score);if(worst<best)break;}return worst+(game.isInCheck()?8:0);});if(value>best){best=value;chosen=move;}}
   return chosen;
+}
+const AI_LEVEL_ORDER=['easy','casual','advanced','serious'];
+const XQ_TIMEOUT=Symbol('xq-ai-timeout');
+const xqNow=()=>typeof performance!=='undefined'?performance.now():Date.now();
+const xqLevelOf=options=>AI_LEVEL_ORDER.includes(options?.level)?options.level:'casual';
+function xqBudget(options={},defaultMs=Infinity){
+  const timeMs=Number.isFinite(options.timeMs)?options.timeMs:defaultMs;
+  const nodeLimit=Number.isFinite(options.nodeLimit)?options.nodeLimit:Infinity;
+  const deadline=timeMs===Infinity?Infinity:xqNow()+timeMs;
+  let nodes=0;
+  return {check(){nodes++;if(nodes>nodeLimit)throw XQ_TIMEOUT;if((nodes&63)===0&&deadline!==Infinity&&xqNow()>deadline)throw XQ_TIMEOUT;}};
+}
+const XQ_MATE=1000000;
+function orderXqMoves(moves,previous=null,width=Infinity){
+  const ordered=[...moves].sort((a,b)=>(values[b.captured?.type]||0)-(values[a.captured?.type]||0));
+  if(previous){const i=ordered.findIndex(m=>m.fr===previous.fr&&m.fc===previous.fc&&m.r===previous.r&&m.c===previous.c);if(i>0)ordered.unshift(ordered.splice(i,1)[0]);}
+  return width===Infinity?ordered:ordered.slice(0,width);
+}
+function xqMoves(game,previous=null,width=Infinity){return orderXqMoves(game.legalMoves(),previous,width);}
+function chooseXiangqiEasy(game,options){
+  const player=game.turn,random=options.random||Math.random,moves=xqMoves(game);
+  if(!moves.length)return null;
+  const scored=[];
+  for(const move of moves){const value=game.temporary(move,()=>game.legalMoves().length?evaluate(game,player):XQ_MATE);scored.push({move,value});}
+  const mates=scored.filter(x=>x.value>=XQ_MATE);if(mates.length)return mates[0].move;
+  scored.sort((a,b)=>b.value-a.value);const top=scored.slice(0,4);
+  return (top[Math.floor(random()*top.length)]||scored[0]).move;
+}
+function xqQuiescence(game,alpha,beta,budget,ply,qDepth){
+  budget.check();
+  const moves=game.legalMoves();
+  if(!moves.length)return -XQ_MATE+ply;
+  let stand=evaluate(game,game.turn);
+  if(qDepth>=4)return stand;
+  if(stand>=beta)return beta;
+  if(stand>alpha)alpha=stand;
+  const inCheck=game.isInCheck(game.turn);
+  const captures=inCheck?moves:moves.filter(move=>move.captured);
+  for(const move of captures){
+    const value=game.temporary(move,()=>-xqQuiescence(game,-beta,-alpha,budget,ply+1,qDepth+1));
+    if(value>=beta)return beta;
+    if(value>alpha)alpha=value;
+  }
+  return alpha;
+}
+function xqSearch(game,depth,player,alpha,beta,budget,ply,widths){
+  budget.check();
+  const moves=game.legalMoves();
+  if(!moves.length)return -XQ_MATE+ply;
+  if(depth<=0)return xqQuiescence(game,alpha,beta,budget,ply,0);
+  const width=widths?widths[Math.min(ply,widths.length-1)]:Infinity;
+  const ordered=orderXqMoves(moves,null,width);
+  let best=-Infinity;
+  for(const move of ordered){
+    const value=game.temporary(move,()=>-xqSearch(game,depth-1,3-player,-beta,-alpha,budget,ply+1,widths));
+    if(value>best)best=value;
+    if(value>alpha)alpha=value;
+    if(alpha>=beta)break;
+  }
+  return best;
+}
+function xqRoot(game,depth,player,budget,previous,widths){
+  const width=widths?widths[0]:Infinity;
+  const moves=xqMoves(game,previous,width);
+  let bestMove=null,bestScore=-Infinity,alpha=-Infinity;
+  for(const move of moves){
+    budget.check();
+    const value=game.temporary(move,()=>{
+      const replies=game.legalMoves();
+      if(!replies.length)return XQ_MATE-1;
+      return -xqSearch(game,depth-1,3-player,-Infinity,-alpha,budget,1,widths);
+    });
+    if(value>bestScore){bestScore=value;bestMove=move;}
+    if(value>alpha)alpha=value;
+  }
+  return bestMove?{move:bestMove,score:bestScore}:null;
+}
+function chooseXiangqiSearch(game,maxDepth,options,widths){
+  const player=game.turn;
+  let bestMove=xqMoves(game)[0]||null;
+  if(!bestMove)return null;
+  const budget=xqBudget(options,maxDepth>=3?200:120);
+  for(let depth=1;depth<=maxDepth;depth++){
+    try{const result=xqRoot(game,depth,player,budget,bestMove,widths);if(result)bestMove=result.move;}
+    catch(error){if(error!==XQ_TIMEOUT)throw error;break;}
+  }
+  return bestMove;
+}
+export function chooseXiangqiMove(game,options={}){
+  const level=xqLevelOf(options);
+  if(level==='easy')return chooseXiangqiEasy(game,options);
+  if(level==='advanced')return chooseXiangqiSearch(game,2,options,undefined);
+  if(level==='serious')return chooseXiangqiSearch(game,3,options,[16,12,8]);
+  return chooseXiangqiCasual(game);
 }
 export function restoreXiangqi(moves){const game=new Xiangqi();for(const move of moves)if(!game.move(move.fr,move.fc,move.r,move.c))throw new Error('Invalid Xiangqi save');return game;}

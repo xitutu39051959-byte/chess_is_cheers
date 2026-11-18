@@ -5,6 +5,10 @@ import { Jungle, chooseJungleMove, restoreJungle } from './jungle.js';
 import { Go, chooseGoMove, restoreGo } from './go.js';
 import { Tiaoqi, chooseTiaoqiMove, restoreTiaoqi } from './tiaoqi.js';
 
+export const AI_LEVELS=['easy','casual','advanced','serious'];
+export const AI_LEVEL_KINDS=['gomoku','xiangqi','chess'];
+export const isAiLevel=value=>AI_LEVELS.includes(value);
+
 // One shape for every board game, so the app's game lifecycle needs no per-game branches.
 const common={moves:engine=>engine.history,turn:engine=>engine.turn,winner:engine=>engine.winner};
 const placing={...common,apply:(engine,move)=>engine.move(move.r,move.c),moveData:({r,c})=>({r,c})};
@@ -12,16 +16,16 @@ const moving={...common,picksPiece:true,apply:(engine,move)=>engine.move(move.fr
 const grid=(kind,sides,symbol)=>({...placing,create:()=>new GridGame(kind),restore:moves=>restoreGrid(kind,moves),choose:chooseGridMove,sides,symbol});
 
 export const boardRules={
-  xiangqi:{...moving,create:()=>new Xiangqi(),restore:restoreXiangqi,choose:chooseXiangqiMove,sides:['红方','黑方'],symbol:'帅'},
+  xiangqi:{...moving,create:()=>new Xiangqi(),restore:restoreXiangqi,choose:chooseXiangqiMove,sides:['红方','黑方'],symbol:'帅',aiLevels:AI_LEVELS},
   go:{...common,create:()=>new Go(),restore:restoreGo,choose:chooseGoMove,apply:(engine,move)=>move.finish?engine.finish(move.dead):move.pass?engine.pass():engine.move(move.r,move.c),moveData:({r,c,pass,finish,dead})=>finish?{finish:true,dead}:pass?{pass:true}:{r,c},sides:['黑方','白方'],symbol:'◎'},
-  gomoku:grid('gomoku',['黑方','白方'],'◉'),
+  gomoku:{...grid('gomoku',['黑方','白方'],'◉'),aiLevels:AI_LEVELS},
   chess:{
     create:puzzle=>createChess(puzzle),
     restore:(moves,puzzle)=>{const engine=createChess(puzzle);for(const move of moves)engine.move(move);return engine;},
     choose:chooseChessMove,apply:(engine,move)=>engine.move(move),moves:engine=>engine.history({verbose:true}).map(m=>({player:m.color==='w'?1:2,label:m.san,from:m.from,to:m.to,promotion:m.promotion})),
     saved:engine=>engine.history(),turn:engine=>engine.turn()==='w'?1:2,
     winner:engine=>engine.isCheckmate()?(engine.turn()==='w'?2:1):engine.isGameOver()?0:null,
-    sides:['白方','黑方'],symbol:'♞',picksPiece:true
+    sides:['白方','黑方'],symbol:'♞',picksPiece:true,aiLevels:AI_LEVELS
   },
   reversi:grid('reversi',['黑方','白方'],'◉'),
   tictactoe:grid('tictactoe',['叉号','圆圈'],'×'),
